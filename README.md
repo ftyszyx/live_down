@@ -1,10 +1,20 @@
 # live_down
 livedown
 
+# update package
+
+flutter pub get -v
+
+# run
+
+flutter run -d windows
+
+chrome ：https://commondatastorage.googleapis.com/chromium-browser-snapshots/index.html
+
+
 
 # 需求
 一个桌面程序
-想用https://github.com/DioxusLabs/dioxus 框架实现
 ## 功能：
 用户输入直播平台分享的链接
 程序可以通过链接解析出直播视频的真正下载地址
