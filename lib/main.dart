@@ -49,9 +49,10 @@ class MyHomePage extends StatefulWidget {
 // 定义一个数据模型来表示下载任务
 class DownloadTask {
   final int id;
-  final String fileType;
-  final String downloadUrl;
-  final String size;
+  String fileType;
+  String downloadUrl;
+  int totalSize;
+  int duration;
   double progress;
   final String customName;
   bool isSelected;
@@ -60,7 +61,8 @@ class DownloadTask {
     required this.id,
     this.fileType = 'm3u8',
     required this.downloadUrl,
-    this.size = '未知',
+    this.totalSize = 0,
+    this.duration = 0,
     this.progress = 0.0,
     required this.customName,
     this.isSelected = false,
@@ -114,6 +116,8 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
           id: _downloadTasks.length + 1,
           downloadUrl: liveDetail.replayUrl ?? '未知地址',
           customName: liveDetail.title,
+          totalSize: liveDetail.size,
+          duration: liveDetail.duration,
         ));
       });
     } on DownloadError catch (e) {
@@ -122,12 +126,14 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
           SnackBar(content: Text('解析失败: ${e.message}')),
         );
       }
-    } catch (e) {
+      logger.e('解析失败', error: e);
+    } catch (e, s) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('发生未知错误: $e')),
         );
       }
+      logger.e('解析时发生未知错误', error: e, stackTrace: s);
     } finally {
       setState(() {
         _isParsing = false;
@@ -337,6 +343,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                   DataColumn(label: Text('文件类型')),
                   DataColumn(label: Text('下载地址')),
                   DataColumn(label: Text('大小')),
+                  DataColumn(label: Text('时长')),
                   DataColumn(label: Text('下载速度')),
                   DataColumn(label: Text('下载进度')),
                   DataColumn(label: Text('自定义名字(双击)')),
@@ -353,7 +360,12 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                       DataCell(Text(task.id.toString())),
                       DataCell(Text(task.fileType)),
                       DataCell(Text(task.downloadUrl)),
-                      DataCell(Text(task.size)),
+                      DataCell(Text(task.totalSize > 0
+                          ? '${(task.totalSize / 1024 / 1024).toStringAsFixed(2)}MB'
+                          : '--')),
+                      DataCell(Text(task.duration > 0
+                          ? '${(task.duration / 60).toStringAsFixed(2)}分钟'
+                          : '--')),
                       DataCell(Text('--/--')),
                       DataCell(
                         LinearProgressIndicator(value: task.progress),

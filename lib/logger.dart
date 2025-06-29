@@ -62,7 +62,7 @@ class SimpleLogger {
     if (stackTrace != null) {
       if (level == LogLevel.error) {
         // For errors, append the full, cleaned stack trace
-        final formattedStack = formatStackTrace(stackTrace, 5);
+        final formattedStack = formatStackTrace(stackTrace, 10);
         message += '\nStack Trace:\n$formattedStack';
       } else if (level == LogLevel.info) {
         // For info, extract just the caller's location

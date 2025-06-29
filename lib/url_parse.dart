@@ -1,22 +1,24 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:path/path.dart' as path;
 import 'package:puppeteer/puppeteer.dart';
 import 'logger.dart';
 
 class LiveDetail {
-  final String? replayUrl;
-  final String title;
+  String replayUrl;
+  String title;
+  int liveId;
+  int size; //byte
+  int duration; //second
 
-  LiveDetail({this.replayUrl, required this.title});
-
-  factory LiveDetail.fromJson(Map<String, dynamic> json) {
-    return LiveDetail(
-      replayUrl: json['replayUrl'],
-      title: json['title'] ?? '未命名直播',
-    );
-  }
+  LiveDetail(
+      {this.replayUrl = '',
+      this.title = '',
+      this.liveId = 0,
+      this.size = 0,
+      this.duration = 0});
 }
 
 class DownloadError implements Exception {
@@ -65,10 +67,12 @@ class UrlParseService {
 
     // 5. 获取直播详情
     final liveDetail = await _getLiveDetail(feedId);
-    if (liveDetail.replayUrl == null || liveDetail.replayUrl!.isEmpty) {
+    if (liveDetail.replayUrl.isEmpty) {
       throw DownloadError('获取到直播详情，但找不到回放链接 (replayUrl)');
     }
     logger.i('获取到 m3u8 链接: ${liveDetail.replayUrl}');
+    // 6. 获取 m3u8 文件总大小
+    await _getM3u8TotalSize(liveDetail);
     return liveDetail;
   }
 
@@ -84,11 +88,13 @@ class UrlParseService {
       logger.i('正在启动本地浏览器以解析链接 ...');
 
       final String exeDir = path.dirname(Platform.resolvedExecutable);
-      final String chromiumPath = path.join( exeDir, 'data', 'flutter_assets', 'assets', 'chrome-win', 'chrome.exe');
+      final String chromiumPath = path.join(exeDir, 'data', 'flutter_assets',
+          'assets', 'chrome-win', 'chrome.exe');
       if (!await File(chromiumPath).exists()) {
         throw DownloadError('打包的 chrome.exe 未找到，路径: $chromiumPath');
       }
-      browser = await puppeteer.launch(executablePath: chromiumPath, headless: false);
+      browser =
+          await puppeteer.launch(executablePath: chromiumPath, headless: false);
 
       final page = await browser.newPage();
 
@@ -125,18 +131,18 @@ class UrlParseService {
     try {
       final response = await _dio.get(apiUrl);
       if (response.statusCode == 200 && response.data != null) {
-        // The response body is a string that looks like a JSONP callback.
-        // We need to extract the JSON part from it.
         String responseBody = response.data.toString();
-
-        // Find the first '{' and the last '}'
         int startIndex = responseBody.indexOf('{');
         int endIndex = responseBody.lastIndexOf('}');
-
         if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
           String jsonString = responseBody.substring(startIndex, endIndex + 1);
           final jsonData = jsonDecode(jsonString);
-          return LiveDetail.fromJson(jsonData);
+          return LiveDetail(
+            replayUrl: jsonData['replayUrl'],
+            title: jsonData['title'],
+            liveId: jsonData['liveId'],
+            duration: 0,
+          );
         } else {
           throw DownloadError('无法从响应中解析出有效的 JSON 数据');
         }
@@ -147,5 +153,69 @@ class UrlParseService {
       logger.e('获取直播详情时出错', error: e);
       throw DownloadError('获取直播详情失败: $e');
     }
+  }
+
+  static Future<bool> _getM3u8TotalSize(LiveDetail liveDetail) async {
+    try {
+      final response = await _dio.get(liveDetail.replayUrl);
+      if (response.statusCode != 200 || response.data == null) {
+        return false;
+      }
+      final lines = (response.data as String).split('\n');
+      final segmentUrls = <String>[];
+      final m3u8Uri = Uri.parse(liveDetail.replayUrl);
+      var duration = 0.0;
+      for (final line in lines) {
+        if (line.startsWith('#EXTINF:')) {
+          final valueString = line.split(':')[1].split(',')[0];
+          duration += double.parse(valueString);
+        }
+        if (line.isNotEmpty && !line.startsWith('#')) {
+          Uri segmentUri;
+          if (line.startsWith('http')) {
+            segmentUri = Uri.parse(line);
+          } else {
+            // Handle relative paths
+            segmentUri = m3u8Uri.resolve(line);
+          }
+          segmentUrls.add(segmentUri.toString());
+        }
+      }
+      if (segmentUrls.isEmpty) {
+        return false;
+      }
+
+      double totalSize = 0;
+      var firstUrl = segmentUrls.first;
+        try {
+          final res = await _dio.head(firstUrl);
+          if (res.statusCode == 200) {
+            final length = res.headers.value('content-length');
+            if (length != null) {
+              totalSize = double.parse(length)*segmentUrls.length;
+            }
+          }
+        } catch (e) {
+        logger.w('获取片段大小失败: $firstUrl, 错误: $e');
+      }
+
+      if (totalSize == 0) {
+        return false;
+      }
+
+      liveDetail.duration = duration.round();
+      liveDetail.size = totalSize.toInt();
+      return true;
+    } catch (e, stackTrace) {
+      logger.e('计算 m3u8 总大小失败', error: e, stackTrace: stackTrace);
+      return false;
+    }
+  }
+
+  static String _formatBytes(int bytes, int decimals) {
+    if (bytes <= 0) return "0 B";
+    const suffixes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+    var i = (log(bytes) / log(1024)).floor();
+    return '${(bytes / pow(1024, i)).toStringAsFixed(decimals)} ${suffixes[i]}';
   }
 }

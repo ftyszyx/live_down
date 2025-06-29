@@ -1,0 +1,54 @@
+{
+  "accountId": 2215846556688,
+  "artpUrl": "artp://liveng-artp.alicdn.com/mediaplatform/a2ca633b-cd4d-40c1-a2af-4404dccb4884?auth_key=1752796838-0-0-3f949f6d23889ebd433b2849f4cb4e4e",
+  "bfrtcUrl": "artc://liveng-bfrtc.alibabausercontent.com/mediaplatform/a2ca633b-cd4d-40c1-a2af-4404dccb4884?auth_key=1752796838-0-0-fa9886b3194af041b32cd432bf7b6a9e",
+  "bizCode": "TAOBAO",
+  "broadCaster": {
+    "accountId": 2215846556688,
+    "accountName": "电器严选直发",
+    "headImg": "https://img.alicdn.com/sns_logo/i2/2215846556688/O1CN01nqpgrC1zH9wM2L8i2_!!2215846556688-2-userheaderimgshow.png"
+  },
+  "coverImg": "https://gw.alicdn.com/tfscom/i2/O1CN01EbovjN1zH9wN1F7nv_!!4611686018427384848-0-dgshop.jpg",
+  "defaultImageUrl": "https://gw.alicdn.com/tfs/TB10l6bbz39YK4jSZPcXXXrUFXa-324-96.png",
+  "descInfo": "",
+  "displayDuration": 10,
+  "landScape": false,
+  "liveConfigForStream": "{\"streamLevelPriorityList\":[\"0\",\"1\",\"2\",\"3\"],\"channelType\":\"live\",\"channelSubType\":\"hd_live\",\"ntpStartLiveOffset\":\"3959193638821\",\"dataChannelMsId\":\"rts data\",\"fpsNum\":\"25\",\"streamLevelInfo\":{},\"userLevel\":\"2\",\"pushControlStrategy\":\"base_transcode_1080_to_720\",\"trans1080P\":false,\"encoderImplType\":\"12\",\"experimentNamespace\":\"null\",\"landScape\":false,\"width\":\"1080\",\"channelId\":\"185fce86a79aef3c4749102cabbe7855\",\"height\":\"1920\"}",
+  "liveId": 523417747786,
+  "liveUrl": "http://liveng.alicdn.com/mediaplatform/a2ca633b-cd4d-40c1-a2af-4404dccb4884.flv?auth_key=1753456595-0-0-0c08584f7df900991788f0f48f5f11fe&source=null_null_TBLive_detailCDN&fromPlayControl=true",
+  "liveUrlHls": "http://liveng.alicdn.com/mediaplatform/a2ca633b-cd4d-40c1-a2af-4404dccb4884.m3u8?auth_key=1753456595-0-0-e3b72584311bcc3e8429150b8fa07722&source=null_null_TBLive_detailCDN",
+  "liveUrlList": [
+    {
+      "codeLevel": 1,
+      "definition": "ld",
+      "flvUrl": "http://liveng.alicdn.com/mediaplatform/a2ca633b-cd4d-40c1-a2af-4404dccb4884.flv?auth_key=1753456595-0-0-0c08584f7df900991788f0f48f5f11fe&source=null_null_TBLive_detailCDN&fromPlayControl=true",
+      "hlsUrl": "http://liveng.alicdn.com/mediaplatform/a2ca633b-cd4d-40c1-a2af-4404dccb4884.m3u8?auth_key=1753456595-0-0-e3b72584311bcc3e8429150b8fa07722&source=null_null_TBLive_detailCDN",
+      "name": "流畅",
+      "recomm": false
+    },
+    {
+      "codeLevel": 2,
+      "definition": "md",
+      "flvUrl": "http://liveng.alicdn.com/mediaplatform/a2ca633b-cd4d-40c1-a2af-4404dccb4884.flv?auth_key=1753456595-0-0-0c08584f7df900991788f0f48f5f11fe&source=null_null_TBLive_detailCDN&fromPlayControl=true",
+      "hlsUrl": "http://liveng.alicdn.com/mediaplatform/a2ca633b-cd4d-40c1-a2af-4404dccb4884.m3u8?auth_key=1753456595-0-0-e3b72584311bcc3e8429150b8fa07722&source=null_null_TBLive_detailCDN",
+      "name": "高清",
+      "recomm": false
+    },
+    {
+      "definition": "",
+      "flvUrl": "http://liveng.alicdn.com/mediaplatform/a2ca633b-cd4d-40c1-a2af-4404dccb4884.flv?auth_key=1753456595-0-0-0c08584f7df900991788f0f48f5f11fe&source=null_null_TBLive_detailCDN&fromPlayControl=true",
+      "hlsUrl": "http://liveng.alicdn.com/mediaplatform/a2ca633b-cd4d-40c1-a2af-4404dccb4884.m3u8?auth_key=1753456595-0-0-e3b72584311bcc3e8429150b8fa07722&source=null_null_TBLive_detailCDN",
+      "liveStreamStatsInfo": { "network": { "vatsb": { "avg": "3217067", "min": "2360905", "max": "4186060" } } },
+      "newDefinition": "ud",
+      "newName": "蓝光",
+      "recomm": true
+    }
+  ],
+  "pushFeature": "Win_7.12.1_rtp_1080p_ElectronWin",
+  "replayUrl": "http://livenging.alicdn.com/mediaplatform/a2ca633b-cd4d-40c1-a2af-4404dccb4884_merge.m3u8",
+  "roomStatus": 2,
+  "streamStatus": 0,
+  "title": "电器严选618狂欢购",
+  "topic": "a2ca633b-cd4d-40c1-a2af-4404dccb4884",
+  "viewCount": 155236
+}
