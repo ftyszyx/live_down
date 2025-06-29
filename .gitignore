@@ -45,4 +45,4 @@ app.*.map.json
 /android/app/release
 
 /assets/ffmpeg/
-/assets/chromium/
+/assets/chrome-win/

@@ -1,18 +1,20 @@
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'config_service.dart';
-import 'downloader_service.dart';
+import 'app_config.dart';
+import 'logger.dart';
+import 'download_manager.dart';
+import 'url_parse.dart';
 import 'path_service.dart';
 
 late AppConfig appConfig;
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // 必须在异步操作前调用
+  WidgetsFlutterBinding.ensureInitialized();
+  await logger.initialize();
   appConfig = await AppConfig.load();
-
+  logger.i('App config loaded.');
   runApp(const MyApp());
 }
 
@@ -72,11 +74,12 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   final String _statusMessage = '部分主流平台, 无需嗅探, 填入地址, 点击解析即可, 不能解析的, 就用嗅探功能';
   String _appVersion = '';
   bool _isParsing = false;
+  final DownloadManager _downloadManager = DownloadManager();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 1, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _initPackageInfo();
   }
 
@@ -105,7 +108,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     });
 
     try {
-      final liveDetail = await DownloaderService.parseUrl(url);
+      final liveDetail = await UrlParseService.parseUrl(url);
       setState(() {
         _downloadTasks.add(DownloadTask(
           id: _downloadTasks.length + 1,
@@ -132,6 +135,46 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     }
   }
 
+  void _startSelectedDownloads() {
+    final selectedTasks = _downloadTasks.where((task) => task.isSelected).toList();
+    if (selectedTasks.isEmpty) {
+      _showSnackBar('请先选择要下载的任务');
+      return;
+    }
+
+    for (final task in selectedTasks) {
+      _downloadManager
+          .startDownload(task.id, task.downloadUrl, task.customName)
+          .catchError((e) {
+        final errorMessage = '任务 ${task.customName} 下载失败';
+        _showSnackBar(errorMessage);
+        logger.e(errorMessage, error: e);
+      });
+    }
+    _showSnackBar('${selectedTasks.length} 个任务已开始下载。');
+  }
+
+  void _stopSelectedDownloads() {
+    final selectedTasks = _downloadTasks.where((task) => task.isSelected);
+    if (selectedTasks.isEmpty) {
+      _showSnackBar('请先选择要停止的任务');
+      return;
+    }
+
+    for (final task in selectedTasks) {
+      _downloadManager.stopDownload(task.id);
+    }
+    _showSnackBar('${selectedTasks.length} 个任务已发送停止信号。');
+  }
+
+  void _showSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -148,6 +191,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
           tabs: const [
             Tab(text: '【下载列表】'),
+            Tab(text: '【设置】'),
           ],
         ),
       ),
@@ -155,6 +199,42 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
         controller: _tabController,
         children: [
           _buildDownloadListTab(), // 第一个 tab 的内容
+          _buildSettingsTab(), // 第二个 tab 的内容
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsTab() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('应用设置', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              const Text('日志记录级别:'),
+              const SizedBox(width: 20),
+              DropdownButton<LogLevel>(
+                value: logger.currentLevel,
+                onChanged: (LogLevel? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      logger.setLevel(newValue);
+                    });
+                  }
+                },
+                items: LogLevel.values.map<DropdownMenuItem<LogLevel>>((LogLevel value) {
+                  return DropdownMenuItem<LogLevel>(
+                    value: value,
+                    child: Text(value.name),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -218,32 +298,33 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                 const SizedBox(width: 16),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                  onPressed: () {},
+                  onPressed: _startSelectedDownloads,
                   child: const Text('下载选中', style: TextStyle(color: Colors.white)),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  onPressed: () {},
+                  onPressed: _stopSelectedDownloads,
                   child: const Text('停止下载选中', style: TextStyle(color: Colors.white)),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(onPressed: () async {
                   final String absolutePath = await PathService.getAbsoluteSavePath(appConfig.saveDir);
                   final Uri uri = Uri.file(absolutePath);
-                  developer.log(absolutePath);
-                  if (!await launchUrl(uri)) {
-                    if (mounted) {
-                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('无法打开目录: $absolutePath')),
-                      );
+                  logger.i('Attempting to open directory: $absolutePath');
+
+                  if (await canLaunchUrl(uri)) {
+                    if (!await launchUrl(uri)) {
+                      _showSnackBar('无法打开目录: $absolutePath');
+                      logger.e('launchUrl failed for $uri');
                     }
-                    developer.log('Could not launch $uri');
+                  } else {
+                     _showSnackBar('无法处理该路径: $absolutePath');
+                     logger.e('canLaunchUrl returned false for $uri');
                   }
                 }, child: const Text('打开保存目录')),
                 const SizedBox(width: 8),
                 ElevatedButton(onPressed: () {}, child: const Text('清空列表')),
-                const Spacer(),
               ],
             ),
           ),
@@ -256,6 +337,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                   DataColumn(label: Text('文件类型')),
                   DataColumn(label: Text('下载地址')),
                   DataColumn(label: Text('大小')),
+                  DataColumn(label: Text('下载速度')),
                   DataColumn(label: Text('下载进度')),
                   DataColumn(label: Text('自定义名字(双击)')),
                 ],
@@ -272,6 +354,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                       DataCell(Text(task.fileType)),
                       DataCell(Text(task.downloadUrl)),
                       DataCell(Text(task.size)),
+                      DataCell(Text('--/--')),
                       DataCell(
                         LinearProgressIndicator(value: task.progress),
                       ),
@@ -291,6 +374,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
 
   @override
   void dispose() {
+    logger.dispose(); // Clean up the file sink
     _controller.dispose();
     _tabController.dispose();
     super.dispose();

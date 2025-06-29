@@ -4,10 +4,12 @@ import 'package:yaml/yaml.dart';
 class AppConfig {
   final String appTitle;
   final String saveDir;
+  final String logLevel;
 
   AppConfig({
     required this.appTitle,
     required this.saveDir,
+    required this.logLevel,
   });
 
   static Future<AppConfig> load() async {
@@ -17,6 +19,7 @@ class AppConfig {
     return AppConfig(
       appTitle: yamlMap['app_title'],
       saveDir: yamlMap['save_dir'],
+      logLevel: yamlMap['log_level'],
     );
   }
 }

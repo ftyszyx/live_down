@@ -12,6 +12,13 @@ flutter run -d windows
 chrome ：https://commondatastorage.googleapis.com/chromium-browser-snapshots/index.html
 
 
+# need
+1. 日志记录
+2. 下载器程序（用来下载aseet资源）
+3. 设置页面，可以修改保存目录
+4. 需要保存历史记录
+5. 能断点续传
+
 
 # 需求
 一个桌面程序
