@@ -26,9 +26,7 @@ class UrlParseService {
     if (shortUrl == null) {
       throw DownloadError('在分享文本中找不到有效的淘宝短链接');
     }
-
     logger.i('提取到短链接: $shortUrl');
-
     // 3. 获取长链接
     final longUrl = await _getRedirectUrl(shortUrl);
     if (longUrl == null) {

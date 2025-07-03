@@ -57,8 +57,7 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    final appConfig = context.read<AppConfig>();
-
+    final appConfig = AppConfig.instance;
     return Scaffold(
       appBar: AppBar(
         title: Row(

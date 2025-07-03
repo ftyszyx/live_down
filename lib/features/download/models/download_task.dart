@@ -1,7 +1,7 @@
-enum DownloadStatus { idle, downloading, paused, completed, failed, merging }
+enum DownloadStatus { idle, downloading, paused,  failed, merging ,completed}
 enum DownloadFileType { m3u8, mp4 }
 
-class DownloadTask {
+class ViewDownloadInfo {
   final int id;
   DownloadFileType fileType;
   String downloadUrl;
@@ -14,7 +14,7 @@ class DownloadTask {
   DownloadStatus status;
   String speed = '';
 
-  DownloadTask({
+  ViewDownloadInfo({
     required this.id,
     this.fileType = DownloadFileType.m3u8,
     required this.downloadUrl,

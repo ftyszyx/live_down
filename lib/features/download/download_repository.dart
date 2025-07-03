@@ -17,9 +17,8 @@ class DownloadRepository {
     return UrlParseService.parseUrl(url);
   }
 
-  Future<void> startDownload(DownloadTask task) {
-    return _downloadManager.startDownload(
-        task.id, task.downloadUrl, task.customName, task.totalSize);
+  Future<void> startDownload(ViewDownloadInfo task) {
+    return _downloadManager.startDownloadTask(task.id, task.downloadUrl, task.customName);
   }
 
   void stopDownload(int taskId) {
@@ -30,9 +29,8 @@ class DownloadRepository {
     _downloadManager.stopAllDownloads();
   }
 
-  Future<void> mergePartialDownload(DownloadTask task) {
-    return _downloadManager.mergePartialDownload(
-        task.id, task.customName, task.totalSize);
+  Future<void> mergePartialDownload(ViewDownloadInfo task) {
+    return _downloadManager.mergeSegmentsPartial(task.id);
   }
 
   void dispose() {

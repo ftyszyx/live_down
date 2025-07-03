@@ -9,8 +9,8 @@ class HomeViewModel extends ChangeNotifier {
   final DownloadRepository _repository;
   StreamSubscription<DownloadProgressUpdate>? _progressSubscription;
 
-  final List<DownloadTask> _tasks = [];
-  List<DownloadTask> get tasks => _tasks;
+  final List<ViewDownloadInfo> _tasks = [];
+  List<ViewDownloadInfo> get tasks => _tasks;
 
   bool _isParsing = false;
   bool get isParsing => _isParsing;
@@ -25,7 +25,7 @@ class HomeViewModel extends ChangeNotifier {
   void _onProgressUpdate(DownloadProgressUpdate update) {
     try {
       final task = _tasks.firstWhere((t) => t.id == update.taskId);
-      task.progress = update.progress;
+      task.progress = update.progressCurrent / update.progressTotal;
       task.bitSpeedPerSecond = update.bitSpeedPerSecond;
       if (update.status == DownloadStatus.failed) {
         task.status = DownloadStatus.failed;
@@ -49,7 +49,7 @@ class HomeViewModel extends ChangeNotifier {
 
     try {
       final liveDetail = await _repository.parseUrl(url);
-      final newTask = DownloadTask(
+      final newTask = ViewDownloadInfo(
         id: _nextTaskId++,
         downloadUrl:
             liveDetail.replayUrl.isEmpty ? '未知地址' : liveDetail.replayUrl,
@@ -67,7 +67,7 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  void onSelectChanged(bool? isSelected, DownloadTask task) {
+  void onSelectChanged(bool? isSelected, ViewDownloadInfo task) {
     task.isSelected = isSelected ?? false;
     notifyListeners();
   }
