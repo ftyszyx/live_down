@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:live_down/core/configs/local_setting.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:live_down/app.dart';
 import 'package:live_down/core/configs/app_config.dart';
@@ -22,12 +23,12 @@ void main() async {
     await windowManager.focus();
   });
 
-  await logger.initialize();
   await AppConfig.initialize();
+  await LocalSetting.initialize();
+  await logger.initialize();
+  logger.setLevel(LocalSetting.instance.logLevel);
   logger.i('App config loaded.');
-  
   final downloadManager = DownloadManagerService();
-
   final downloadRepository = DownloadRepository(
     downloadManager: downloadManager,
   );

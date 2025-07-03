@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:live_down/core/configs/app_config.dart';
+import 'package:live_down/core/configs/local_setting.dart';
 import 'package:live_down/core/services/logger_service.dart';
 import 'package:live_down/core/services/path_service.dart';
 import 'package:live_down/features/download/models/download_task.dart';
@@ -74,7 +74,7 @@ class DownloadManagerService {
       final sanitizedTitle = title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
       final String taskIdentifier = '$taskId-$sanitizedTitle';
       final tempDir = await PathService.getTaskTempPath(taskIdentifier);
-      final absoluteSaveDir = await PathService.getAbsoluteSavePath(AppConfig.instance.saveDir);
+      final absoluteSaveDir = await PathService.getAbsoluteSavePath(LocalSetting.instance.saveDir);
       final finalSavePath = path.join(absoluteSaveDir, '$sanitizedTitle.mp4');
       task.tempDir = tempDir;
       task.finalSavePath = finalSavePath;

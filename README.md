@@ -20,6 +20,12 @@ chrome ：https://commondatastorage.googleapis.com/chromium-browser-snapshots/in
 5. 能断点续传
 
 
+1.数据持久化，需要接入sqlite
+  保存用户的设置
+  保存上一次的下载任务列表ViewDownloadInfo 
+
+
+
 # code structure
 core  共用的
 feauters: 功能模块

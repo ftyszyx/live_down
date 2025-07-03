@@ -88,7 +88,7 @@ class TaskList extends StatelessWidget {
       case DownloadStatus.idle:
         return '未开始';
       case DownloadStatus.downloading:
-        return task.speed;
+        return '下载中...';
       case DownloadStatus.paused:
         return '已暂停';
       case DownloadStatus.merging:

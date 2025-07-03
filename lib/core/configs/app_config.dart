@@ -3,10 +3,9 @@ import 'package:yaml/yaml.dart';
 
 class AppConfig {
   final String appTitle;
-  final String saveDir;
 
   // Private constructor
-  AppConfig._internal({required this.appTitle, required this.saveDir});
+  AppConfig._internal({required this.appTitle});
 
   // Static instance with lazy initialization
   static late final AppConfig instance;
@@ -17,7 +16,6 @@ class AppConfig {
     final config = loadYaml(configString);
     instance = AppConfig._internal(
       appTitle: config['app_title'] ?? 'Live Downloader',
-      saveDir: config['save_dir'] ?? '<downloads>',
     );
   }
 } 
