@@ -42,13 +42,11 @@ class ActionButtonsRow extends StatelessWidget {
               onPressed: () async {
                 final appConfig = AppConfig.instance;
                 final messenger = ScaffoldMessenger.of(context);
-                final String absolutePath =
-                    await PathService.getAbsoluteSavePath(appConfig.saveDir);
+                final String absolutePath = await PathService.getAbsoluteSavePath(appConfig.saveDir);
                 final Uri uri = Uri.file(absolutePath);
                 logger.i('Attempting to open directory: $absolutePath');
                 if (!await launchUrl(uri)) {
-                  messenger.showSnackBar(
-                      SnackBar(content: Text('无法打开目录: $absolutePath')));
+                  messenger.showSnackBar( SnackBar(content: Text('无法打开目录: $absolutePath')));
                   logger.e('launchUrl failed for $uri');
                 }
               },

@@ -35,11 +35,11 @@ class _HomeViewState extends State<HomeView> with SingleTickerProviderStateMixin
 
   @override
   void onWindowClose() async {
+    logger.i('Window close prevented. Stopping all downloads before exiting.');
     final viewModel = context.read<HomeViewModel>();
     bool isPreventClose = await windowManager.isPreventClose();
     if (isPreventClose) {
-      logger
-          .i('Window close prevented. Stopping all downloads before exiting.');
+      logger .i('Window close prevented. Stopping all downloads before exiting.');
       viewModel.stopAllDownloads();
       await Future.delayed(const Duration(milliseconds: 500));
       await windowManager.destroy();

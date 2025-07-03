@@ -3,22 +3,20 @@ import 'package:flutter/services.dart';
 import 'package:live_down/features/download/models/download_task.dart';
 import 'package:live_down/ui/home/viewmodels/home_viewmodel.dart';
 import 'package:provider/provider.dart';
+import 'package:live_down/core/utils/common.dart';
 
 class TaskList extends StatelessWidget {
   const TaskList({super.key});
 
-  Widget _buildCopyableHeader(BuildContext context, String title, {double? width}) {
-    return InkWell(
-      onTap: () {
-        Clipboard.setData(ClipboardData(text: title));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('"$title" 已复制到剪贴板')),
-        );
-      },
-      child: Container(
-        width: width,
-        alignment: Alignment.centerLeft,
-        child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+  void _copyToClipboard(BuildContext context, String text) {
+    if (text.isEmpty || text == '--') {
+      return;
+    }
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"$text" 已复制到剪贴板'),
+        duration: const Duration(seconds: 1),
       ),
     );
   }
@@ -31,16 +29,17 @@ class TaskList extends StatelessWidget {
       child: SingleChildScrollView(
         child: DataTable(
           columns: [
-            DataColumn(label: _buildCopyableHeader(context, '序号')),
-            DataColumn(label: _buildCopyableHeader(context, '文件类型')),
+            DataColumn(label: Text('序号')),
+            DataColumn(label: Text('文件类型')),
             DataColumn(
-                label:
-                    _buildCopyableHeader(context, '下载地址', width: 100)),
-            DataColumn(label: _buildCopyableHeader(context, '大小')),
-            DataColumn(label: _buildCopyableHeader(context, '时长')),
-            DataColumn(label: _buildCopyableHeader(context, '状态/速度')),
-            DataColumn(label: _buildCopyableHeader(context, '下载进度')),
-            DataColumn(label: _buildCopyableHeader(context, '自定义名字(双击)')),
+              label: Text('下载地址'),
+              columnWidth: FixedColumnWidth(200),
+            ),
+            DataColumn(label: Text('预估大小')),
+            DataColumn(label: Text('时长')),
+            DataColumn(label: Text('状态/速度')),
+            DataColumn(label: Text('下载进度')),
+            DataColumn(label: Text('自定义名字(双击)')),
           ],
           rows: viewModel.tasks.map((task) {
             return DataRow(
@@ -48,19 +47,33 @@ class TaskList extends StatelessWidget {
               onSelectChanged: (isSelected) =>
                   viewModel.onSelectChanged(isSelected, task),
               cells: [
-                DataCell(Text(task.id.toString())),
-                DataCell(Text(task.fileType.name)),
-                DataCell(Text(task.downloadUrl)),
-                DataCell(Text(task.totalSize > 0
-                    ? '${(task.totalSize / 1024 / 1024).toStringAsFixed(2)}MB'
-                    : '--')),
-                DataCell(Text(task.duration > 0
-                    ? '${(task.duration / 60).toStringAsFixed(2)}分钟'
-                    : '--')),
-                DataCell(Text(_getStatusText(task))),
+                DataCell(Text(task.id.toString()), onTap: () {
+                  _copyToClipboard(context, task.id.toString());
+                }),
+                DataCell(Text(task.fileType.name), onTap: () {
+                  _copyToClipboard(context, task.fileType.name);
+                }),
+                DataCell(
+                  Tooltip(
+                    message: task.downloadUrl,
+                    child: Text(
+                      task.downloadUrl,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                    ),
+                  ),
+                  onTap: () {
+                    _copyToClipboard(context, task.downloadUrl);
+                  },
+                ),
+                DataCell( Text(CommonUtils.formatSize(task.totalSize))),
+                DataCell( Text(CommonUtils.formatDuration(task.duration))),
+                DataCell(Text(task.status == DownloadStatus.downloading ? CommonUtils.formatDownloadSpeed(task.bitSpeedPerSecond) : _getStatusText(task))),
                 DataCell(LinearProgressIndicator(value: task.progress)),
                 DataCell(Text(task.customName), onDoubleTap: () {
                   // Handle rename
+                }, onTap: () {
+                  _copyToClipboard(context, task.customName);
                 }),
               ],
             );

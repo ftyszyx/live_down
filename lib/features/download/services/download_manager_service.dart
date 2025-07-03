@@ -174,11 +174,12 @@ class DownloadManagerService {
                 File(segmentPath).deleteSync();
                 return;
               }
+              logger.i('Download segment ${task.segmentUrls[curIndex]} success. Path: $segmentPath');
               task.okSegmentPaths.add(segmentPath);
               totalBytesDownloaded += bytes.length;
             } else {
               if(retryCount>=3){
-                logger.e('Failed to download segment ${task.segmentUrls[curIndex]}', error: response.statusCode);
+                logger.e('Failed to download segment ${task.segmentUrls[curIndex]}', error: response.statusCode );
                 return;
               }
               else{
@@ -218,6 +219,7 @@ class DownloadManagerService {
   }
 
   Future<void> _mergeSegments(DownloadTask task) async {
+    logger.i('Merge segments for task $task.id start. Temp dir: ${task.tempDir}, Save path: ${task.finalSavePath}');
     var taskOkSegmentPaths = task.okSegmentPaths.toList();
     task.status = DownloadStatus.merging;
     taskOkSegmentPaths.sort((a, b) => a.compareTo(b));
