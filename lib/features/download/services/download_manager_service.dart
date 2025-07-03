@@ -74,7 +74,7 @@ class DownloadManagerService {
     task.tempDir = tempDir;
     task.finalSavePath = finalSavePath;
   }
-
+/*
   Future<void> startDownload2( int taskId, String m3u8Url, String title) async {
     final sanitizedTitle = title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
     final String taskIdentifier = '$taskId-$sanitizedTitle';
@@ -137,6 +137,7 @@ class DownloadManagerService {
       rethrow;
     }
   }
+  */
 
   Future<List<String>> _parseM3u8(String m3u8Url) async {
     final m3u8Uri = Uri.parse(m3u8Url);
