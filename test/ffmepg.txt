@@ -1,0 +1,18 @@
+
+line: [http @ 000001ddc9da8200] Opening 'http://livenging.alicdn.com/mediaplatform/a2ca633b-cd4d-40c1-a2af-4404dccb4884/16.ts' for reading
+line: [http @ 000001ddc9c31e40] Opening 'http://livenging.alicdn.com/mediaplatform/a2ca633b-cd4d-40c1-a2af-4404dccb4884/17.ts' for reading
+line: frame= 4677 fps=704 q=-1.0 size=   31744KiB time=00:03:06.60 bitrate=1393.6kbits/s speed=28.1x    
+line: frame=4677
+line: fps=703.57
+line: stream_0_0_q=-1.0
+line: bitrate=1393.6kbits/s
+line: total_size=32505900
+line: out_time_us=186600500
+line: out_time_ms=186600500
+line: out_time=00:03:06.600500
+line: dup_frames=0
+line: drop_frames=0
+line: speed=28.1x
+line: progress=continue
+line: [http @ 000001ddc9da8200] Opening 'http://livenging.alicdn.com/mediaplatform/a2ca633b-cd4d-40c1-a2af-4404dccb4884/18.ts' for reading
+line: [http @ 000001ddc9c31e40] Opening 'http://livenging.alicdn.com/mediaplatform/a2ca633b-cd4d-40c1-a2af-4404dccb4884/19.ts' for reading

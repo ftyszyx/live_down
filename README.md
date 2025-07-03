@@ -20,6 +20,19 @@ chrome ：https://commondatastorage.googleapis.com/chromium-browser-snapshots/in
 5. 能断点续传
 
 
+# code structure
+core  共用的
+feauters: 功能模块
+ui :ui相关
+
+
+
+下载进度用分片进度 分子是已经下载的分片  分母是总分片数
+文件总大小使用预估大小
+暂停下载后，如果用户打开文件目录就触发 文件合并同时清空临时文件
+
+
+
 # 需求
 一个桌面程序
 ## 功能：

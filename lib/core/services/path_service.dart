@@ -30,4 +30,13 @@ class PathService {
 
     return absolutePath;
   }
+
+  static Future<String> getTaskTempPath(String taskIdentifier) async {
+    final tempDir = await getTemporaryDirectory();
+    final taskTempDir = Directory(p.join(tempDir.path, 'live_down_segs', taskIdentifier));
+    if (!await taskTempDir.exists()) {
+      await taskTempDir.create(recursive: true);
+    }
+    return taskTempDir.path;
+  }
 } 

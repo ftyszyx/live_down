@@ -1,33 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:path/path.dart' as path;
 import 'package:puppeteer/puppeteer.dart';
-import 'logger.dart';
 
-class LiveDetail {
-  String replayUrl;
-  String title;
-  int liveId;
-  int size; //byte
-  int duration; //second
-
-  LiveDetail(
-      {this.replayUrl = '',
-      this.title = '',
-      this.liveId = 0,
-      this.size = 0,
-      this.duration = 0});
-}
-
-class DownloadError implements Exception {
-  final String message;
-  DownloadError(this.message);
-
-  @override
-  String toString() => 'DownloadError: $message';
-}
+import '../../../core/services/logger_service.dart';
+import '../models/live_detail.dart';
 
 class UrlParseService {
   static final Dio _dio = Dio();
@@ -112,6 +90,7 @@ class UrlParseService {
       logger.e('使用浏览器解析链接失败', error: e);
       return null;
     } finally {
+      logger.i('关闭浏览器');
       await browser?.close();
     }
   }
@@ -196,7 +175,7 @@ class UrlParseService {
             }
           }
         } catch (e) {
-        logger.w('获取片段大小失败: $firstUrl, 错误: $e');
+        logger.e('获取片段大小失败: $firstUrl, 错误: $e');
       }
 
       if (totalSize == 0) {
@@ -212,10 +191,5 @@ class UrlParseService {
     }
   }
 
-  static String _formatBytes(int bytes, int decimals) {
-    if (bytes <= 0) return "0 B";
-    const suffixes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
-    var i = (log(bytes) / log(1024)).floor();
-    return '${(bytes / pow(1024, i)).toStringAsFixed(decimals)} ${suffixes[i]}';
-  }
-}
+
+} 
