@@ -2,108 +2,85 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:live_down/core/configs/local_setting.dart';
 import 'package:live_down/core/services/logger_service.dart';
-import 'package:live_down/core/services/path_service.dart';
 import 'package:live_down/features/download/models/download_task.dart';
 import 'package:path/path.dart' as path;
-
-class DownloadProgressUpdate {
-  final int taskId;
-  final int bitSpeedPerSecond;
-  final int progressCurrent;
-  final int progressTotal;
-  final DownloadStatus status;
-
-  DownloadProgressUpdate({
-    required this.taskId,
-    required this.bitSpeedPerSecond,
-    required this.progressCurrent,
-    required this.progressTotal,
-    required this.status,
-  });
-}
-
-class DownloadTask {
-  int id;
-  String m3u8Url;
-  String title;
-  DownloadStatus status;
-  Process? mergeProcess;
-  String tempDir;
-  String finalSavePath;
-  List<String> segmentUrls;
-  Set<String> okSegmentPaths;
-  int curIndex;//当前下载的进度
-  DownloadTask({required this.id, required this.m3u8Url, this.title='', this.status=DownloadStatus.idle, this.tempDir="", 
-  this.finalSavePath='', List<String>? segmentUrls, Set<String>? segmentPaths, this.curIndex=0})
-    : segmentUrls = segmentUrls ?? [],
-      okSegmentPaths = segmentPaths ?? {};
-}
 
 class DownloadManagerService {
   static final DownloadManagerService _instance = DownloadManagerService._internal();
   factory DownloadManagerService() => _instance;
   DownloadManagerService._internal();
-  final Map<int, DownloadTask> _downloadTasks = {};
-  // 下载进度通知 
+  final Map<String, DownloadTask> _downloadTasks = {};
+  // 下载进度通知
   final _progressController = StreamController<DownloadProgressUpdate>.broadcast();
   Stream<DownloadProgressUpdate> get progressStream => _progressController.stream;
 
-  Future<void> startDownloadTask(int taskId, String m3u8Url, String title) async {
+  Future<void> startDownloadTask(ViewDownloadInfo taskinfo) async {
     late DownloadTask task;
-    if (_downloadTasks.containsKey(taskId)) {
-      task = _downloadTasks[taskId]!;
+    if (_downloadTasks.containsKey(taskinfo.id)) {
+      task = _downloadTasks[taskinfo.id]!;
       var status = task.status;
       if (status == DownloadStatus.downloading) {
-        logger.w('Task $taskId is already running.');
+        logger.w('Task ${taskinfo.id} is already running.');
         return;
       }
       if (status == DownloadStatus.completed || status == DownloadStatus.merging) {
-        logger.w('Task $taskId is already completed.');
+        logger.w('Task ${taskinfo.id} is already completed.');
         return;
       }
     } else {
-      task = DownloadTask(
-        id: taskId,
-        m3u8Url: m3u8Url,
-        title: title,
-        status: DownloadStatus.downloading,
-      );
-      _downloadTasks[taskId] = task;
-      final sanitizedTitle = title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
-      final String taskIdentifier = '$taskId-$sanitizedTitle';
-      final tempDir = await PathService.getTaskTempPath(taskIdentifier);
-      final absoluteSaveDir = await PathService.getAbsoluteSavePath(LocalSetting.instance.saveDir);
-      final finalSavePath = path.join(absoluteSaveDir, '$sanitizedTitle.mp4');
-      task.tempDir = tempDir;
-      task.finalSavePath = finalSavePath;
-      logger.i('Task $taskId starting. Temp dir: $tempDir, Save path: $finalSavePath');
+      task = taskinfo.toDownloadTask();
+      _downloadTasks[taskinfo.id] = task;
+      logger.i('Task ${taskinfo.id} starting. Temp dir: ${task.tempDir}, Save path: ${task.finalSavePath}');
     }
+    if (taskinfo.fileType == DownloadFileType.mp4) {
+      await _downloadMp4(task);
+    } else {
+      await _downloadM3u8(task);
+    }
+  }
+
+  Future<void> _downloadMp4(DownloadTask task) async {
+    task.status = DownloadStatus.downloading;
+    //download file from url  mp4
+    final response = await http.get(Uri.parse(task.url));
+    int totalSize = 0;
+    if (response.statusCode == 200) {
+      //get file size
+      final fileSize = response.headers['content-length'];
+      if (fileSize != null) {
+        totalSize = int.parse(fileSize);
+      }
+      await File(task.finalSavePath).writeAsBytes(response.bodyBytes);
+    } else {
+      throw Exception('Failed to download file from ${task.url}');
+    }
+    task.status = DownloadStatus.completed;
+    _downloadTasks.remove(task.id);
+    _progressController
+        .add(DownloadProgressUpdate(id: task.id, bitSpeedPerSecond: 0, progressCurrent: totalSize, progressTotal: totalSize, status: DownloadStatus.completed));
+  }
+
+  Future<void> _downloadM3u8(DownloadTask task) async {
+    task.status = DownloadStatus.downloading;
     if (task.segmentUrls.isEmpty) {
-      final segmentUrls = await _parseM3u8(m3u8Url);
+      final segmentUrls = await _parseM3u8(task.url);
       if (segmentUrls.isEmpty) {
         throw Exception('No segments found in M3U8 file.');
       }
       task.segmentUrls = segmentUrls;
     }
-    task.status = DownloadStatus.downloading;
-    // 3. Download segments
     await _downloadSegments(task);
-    if(task.okSegmentPaths.length != task.segmentUrls.length){
+    if (task.okSegmentPaths.length != task.segmentUrls.length) {
       task.status = DownloadStatus.failed;
-      logger.e('Download segments failed for task $taskId.');
+      logger.e('Download segments failed for task ${task.id}.');
       return;
     }
     await _mergeSegments(task);
     task.status = DownloadStatus.completed;
-    _downloadTasks.remove(taskId);
-    _progressController.add(DownloadProgressUpdate(
-        taskId: taskId,
-        bitSpeedPerSecond: 0,
-        progressCurrent: task.segmentUrls.length,
-        progressTotal: task.segmentUrls.length,
-        status: DownloadStatus.completed));
+    _downloadTasks.remove(task.id);
+    _progressController
+        .add(DownloadProgressUpdate(id: task.id, bitSpeedPerSecond: 0, progressCurrent: task.segmentUrls.length, progressTotal: task.segmentUrls.length, status: DownloadStatus.completed));
   }
 
   Future<List<String>> _parseM3u8(String m3u8Url) async {
@@ -133,16 +110,11 @@ class DownloadManagerService {
     final stopwatch = Stopwatch()..start();
     void reportProgress() {
       if (!_progressController.isClosed) {
-      var bitSpeed = 0;
-      if(stopwatch.elapsed.inSeconds > 0){
-        bitSpeed = (totalBytesDownloaded * 8) ~/ stopwatch.elapsed.inSeconds;
-      }
-        _progressController.add(DownloadProgressUpdate(
-            taskId: task.id,
-            bitSpeedPerSecond: bitSpeed,
-            progressCurrent: task.curIndex+1,
-            progressTotal: totalCount,
-            status: DownloadStatus.downloading));
+        var bitSpeed = 0;
+        if (stopwatch.elapsed.inSeconds > 0) {
+          bitSpeed = (totalBytesDownloaded * 8) ~/ stopwatch.elapsed.inSeconds;
+        }
+        _progressController.add(DownloadProgressUpdate(id: task.id, bitSpeedPerSecond: bitSpeed, progressCurrent: task.curIndex + 1, progressTotal: totalCount, status: DownloadStatus.downloading));
       }
     }
 
@@ -156,7 +128,7 @@ class DownloadManagerService {
         final segmentFileName = '${curIndex.toString().padLeft(8, '0')}.ts';
         final segmentPath = path.join(task.tempDir, segmentFileName);
         try {
-          if(task.okSegmentPaths.contains(segmentPath)){
+          if (task.okSegmentPaths.contains(segmentPath)) {
             reportProgress();
             continue;
           }
@@ -167,7 +139,7 @@ class DownloadManagerService {
             if (response.statusCode == 200) {
               okflag = true;
               final bytes = response.bodyBytes;
-              try{
+              try {
                 await File(segmentPath).writeAsBytes(bytes);
               } catch (e, s) {
                 logger.e('Failed to write segment ${task.segmentUrls[curIndex]}', error: e, stackTrace: s);
@@ -178,14 +150,13 @@ class DownloadManagerService {
               task.okSegmentPaths.add(segmentPath);
               totalBytesDownloaded += bytes.length;
             } else {
-              if(retryCount>=3){
-                logger.e('Failed to download segment ${task.segmentUrls[curIndex]}', error: response.statusCode );
+              if (retryCount >= 3) {
+                logger.e('Failed to download segment ${task.segmentUrls[curIndex]}', error: response.statusCode);
                 return;
-              }
-              else{
-              retryCount++;
-              await Future.delayed(const Duration(seconds: 1));
-              continue;
+              } else {
+                retryCount++;
+                await Future.delayed(const Duration(seconds: 1));
+                continue;
               }
             }
           } else {
@@ -193,11 +164,10 @@ class DownloadManagerService {
             task.okSegmentPaths.add(segmentPath);
           }
         } catch (e, s) {
-          if(retryCount>=3){
+          if (retryCount >= 3) {
             logger.e('Failed to download segment ${task.segmentUrls[curIndex]}', error: e, stackTrace: s);
             return;
-          }
-          else{
+          } else {
             retryCount++;
             await Future.delayed(const Duration(seconds: 1));
             continue;
@@ -259,7 +229,7 @@ class DownloadManagerService {
     logger.i('Merge segments for task $task.id complete. Cleaning up temp files...');
   }
 
-  void stopDownload(int taskId) {
+  void stopDownload(String taskId) {
     if (_downloadTasks.containsKey(taskId)) {
       _downloadTasks[taskId]!.status = DownloadStatus.paused;
       logger.i('Sending cancellation signal to task $taskId.');
@@ -278,12 +248,20 @@ class DownloadManagerService {
     logger.i('All active downloads have been sent the kill/cancellation signal.');
   }
 
-  Future<void> mergeSegmentsPartial(int taskId) async {
-    if(_downloadTasks.containsKey(taskId)){
+  Future<void> mergeSegmentsPartial(String taskId) async {
+    if (_downloadTasks.containsKey(taskId)) {
       var task = _downloadTasks[taskId]!;
-      await _mergeSegments(task);
-    }
-    else{
+      if (task.fileType == DownloadFileType.mp4) {
+        for (var file in Directory(task.tempDir).listSync()) {
+          if (file is File) {
+            await file.copy(task.finalSavePath);
+            break;
+          }
+        }
+      } else {
+        await _mergeSegments(task);
+      }
+    } else {
       throw Exception('Task $taskId not found');
     }
   }

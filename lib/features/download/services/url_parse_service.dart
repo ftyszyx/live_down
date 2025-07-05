@@ -1,3 +1,4 @@
+import 'package:live_down/features/download/services/parsers/kuaishou_parser.dart';
 import 'package:live_down/features/download/services/parsers/taobao_parser.dart';
 
 import '../models/live_detail.dart';
@@ -9,6 +10,8 @@ class UrlParseService {
     // 1. 根据分享文本判断平台
     if (shareText.contains('m.tb.cn')) {
       return await TaobaoParser.parse(shareText);
+    } else if(shareText.contains('v.kuaishou.com')) {
+      return await KuaishouParser.parse(shareText);
     } else {
       throw DownloadError('不支持的平台');
     }

@@ -15,6 +15,8 @@ class LoggerService {
   LogLevel _currentLevel = LogLevel.info;
   late final IOSink _fileSink;
   bool _isInitialized = false;
+  String _logPath = '';
+  String get logPath => _logPath;
 
   // ANSI escape codes for colors
   static const String _reset = '\x1B[0m';
@@ -27,8 +29,12 @@ class LoggerService {
     if (_isInitialized) return;
 
     final appDocsDir = await getApplicationSupportDirectory();
+    _logPath = path.join(appDocsDir.path, 'logs');
+    if (!Directory(_logPath).existsSync()) {
+      Directory(_logPath).createSync(recursive: true);
+    }
     final timestamp = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final logFile = File(path.join(appDocsDir.path, 'log_$timestamp.log'));
+    final logFile = File(path.join(_logPath, 'log_$timestamp.log'));
     _fileSink = logFile.openWrite(mode: FileMode.writeOnlyAppend);
     _isInitialized = true;
     i('Logger initialized. Log level: ${_currentLevel.name}. Saving to: ${logFile.path}');
@@ -45,7 +51,11 @@ class LoggerService {
   void i(String message) {
     _log(level: LogLevel.info, message: message, color: _green, stackTrace: StackTrace.current);
   }
-  void w(String message) => _log(level: LogLevel.warn, message: message, color: _yellow);
+
+  void w(String message, {Object? error, StackTrace? stackTrace}) {
+    _log(level: LogLevel.warn, message: message, color: _yellow, stackTrace: stackTrace);
+  }
+
   void e(String message, {Object? error, StackTrace? stackTrace}) {
     final fullMessage = error != null ? '$message\nError: $error' : message;
     _log(level: LogLevel.error, message: fullMessage, color: _red, stackTrace: stackTrace ?? StackTrace.current);
@@ -100,7 +110,7 @@ class LoggerService {
           return '[${match.group(1)}] ';
         }
       }
-    }
+  }
     return null;
   }
   

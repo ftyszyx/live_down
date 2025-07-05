@@ -14,10 +14,40 @@ class TaskList extends StatelessWidget {
     }
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('"$text" 已复制到剪贴板'),
-        duration: const Duration(seconds: 1),
-      ),
+      const SnackBar(content: Text('已复制到剪贴板')),
+    );
+  }
+
+  Future<void> _showRenameDialog(
+      BuildContext context, HomeViewModel viewModel, ViewDownloadInfo task) async {
+    final controller = TextEditingController(text: task.title);
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('重命名任务'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(hintText: '输入新的任务名称'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('取消'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('确定'),
+              onPressed: () {
+                viewModel.renameTask(task, controller.text);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -28,8 +58,22 @@ class TaskList extends StatelessWidget {
     return Expanded(
       child: SingleChildScrollView(
         child: DataTable(
-          columns: [
+          headingRowColor:
+              WidgetStateProperty.all(Theme.of(context).colorScheme.primary.withAlpha(25)),
+          dataRowColor: WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+            if (states.contains(WidgetState.selected)) {
+              return Theme.of(context).colorScheme.primary.withAlpha(50);
+            }
+            if (states.contains(WidgetState.hovered)) {
+              return Theme.of(context).colorScheme.primary.withAlpha(10);
+            }
+            return null;
+          }),
+          dividerThickness: 1,
+          showCheckboxColumn: true,
+          columns: const [
             DataColumn(label: Text('序号')),
+            DataColumn(label: Text('平台')),
             DataColumn(label: Text('文件类型')),
             DataColumn(
               label: Text('下载地址'),
@@ -40,6 +84,7 @@ class TaskList extends StatelessWidget {
             DataColumn(label: Text('状态/速度')),
             DataColumn(label: Text('下载进度')),
             DataColumn(label: Text('自定义名字(双击)')),
+            DataColumn(label: Text('操作')),
           ],
           rows: viewModel.tasks.map((task) {
             return DataRow(
@@ -47,12 +92,13 @@ class TaskList extends StatelessWidget {
               onSelectChanged: (isSelected) =>
                   viewModel.onSelectChanged(isSelected, task),
               cells: [
-                DataCell(Text(task.id.toString()), onTap: () {
-                  _copyToClipboard(context, task.id.toString());
+                DataCell(
+                  Tooltip(message: task.id, child: Text(task.id.substring(0, 6))),
+                  onTap: () {
+                    _copyToClipboard(context, task.id.toString());
                 }),
-                DataCell(Text(task.fileType.name), onTap: () {
-                  _copyToClipboard(context, task.fileType.name);
-                }),
+                DataCell(Text(task.platform.name)),
+                DataCell(Text(task.fileType.name.toUpperCase())),
                 DataCell(
                   Tooltip(
                     message: task.downloadUrl,
@@ -66,15 +112,33 @@ class TaskList extends StatelessWidget {
                     _copyToClipboard(context, task.downloadUrl);
                   },
                 ),
-                DataCell( Text(CommonUtils.formatSize(task.totalSize))),
-                DataCell( Text(CommonUtils.formatDuration(task.duration))),
-                DataCell(Text(task.status == DownloadStatus.downloading ? CommonUtils.formatDownloadSpeed(task.bitSpeedPerSecond) : _getStatusText(task))),
+                DataCell(Text(CommonUtils.formatSize(task.totalSize))),
+                DataCell(Text(CommonUtils.formatDuration(task.duration))),
+                DataCell(Text(task.status == DownloadStatus.downloading
+                    ? CommonUtils.formatDownloadSpeed(task.bitSpeedPerSecond)
+                    : _getStatusText(task))),
                 DataCell(LinearProgressIndicator(value: task.progress)),
-                DataCell(Text(task.customName), onDoubleTap: () {
-                  // Handle rename
+                DataCell(Text(task.title), onDoubleTap: () {
+                  _showRenameDialog(context, viewModel, task);
                 }, onTap: () {
-                  _copyToClipboard(context, task.customName);
+                  _copyToClipboard(context, task.title);
                 }),
+                DataCell(Row(
+                  children: [
+                    IconButton(
+                        tooltip: '下载',
+                        onPressed: () => viewModel.startTask(task),
+                        icon: const Icon(Icons.download)),
+                    IconButton(
+                        tooltip: '暂停',
+                        onPressed: () => viewModel.pauseTask(task),
+                        icon: const Icon(Icons.pause)),
+                    IconButton(
+                        tooltip: '删除',
+                        onPressed: () => viewModel.deleteTask(task),
+                        icon: const Icon(Icons.delete)),
+                  ],
+                )),
               ],
             );
           }).toList(),

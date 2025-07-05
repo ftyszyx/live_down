@@ -1,14 +1,56 @@
-enum DownloadStatus { idle, downloading, paused,  failed, merging ,completed}
-enum DownloadFileType { m3u8, mp4 }
+import 'dart:io';
 
+enum DownloadStatus { idle, downloading, paused,  failed, merging ,completed}
+enum DownloadFileType { m3u8, mp4, unknown }
+enum VideoPlatform { kuaishou, taobao,unknown }
+
+/// 下载进度更新
+class DownloadProgressUpdate {
+  final String id;
+  final int bitSpeedPerSecond;
+  final int progressCurrent;
+  final int progressTotal;
+  final DownloadStatus status;
+
+  DownloadProgressUpdate({
+    required this.id,
+    required this.bitSpeedPerSecond,
+    required this.progressCurrent,
+    required this.progressTotal,
+    required this.status,
+  });
+}
+
+/// 下载任务
+class DownloadTask {
+  String id;
+  String url;
+  String title;
+  DownloadFileType fileType;
+  DownloadStatus status;
+  Process? mergeProcess;
+  String tempDir;
+  String finalSavePath;
+  List<String> segmentUrls;
+  Set<String> okSegmentPaths;
+  int curIndex;//当前下载的进度
+  DownloadTask({required this.id, required this.url, this.title='', this.status=DownloadStatus.idle, this.tempDir="", this.fileType=DownloadFileType.unknown,
+  this.finalSavePath='', List<String>? segmentUrls, Set<String>? segmentPaths, this.curIndex=0})
+    : segmentUrls = segmentUrls ?? [],
+      okSegmentPaths = segmentPaths ?? {};
+}
+
+/// 下载任务信息
 class ViewDownloadInfo {
-  final int id;
+  String id;
+  VideoPlatform platform;
   DownloadFileType fileType;
   String downloadUrl;
+  String coverUrl;
   int totalSize;
   int duration;
   double progress;
-  final String customName;
+  String title;
   final String segementPath;
   final String finalSavePath;
   bool isSelected;
@@ -16,13 +58,15 @@ class ViewDownloadInfo {
   DownloadStatus status;
 
   ViewDownloadInfo({
-    required this.id,
     this.fileType = DownloadFileType.m3u8,
     required this.downloadUrl,
+    required this.platform,
+    required this.id,
+    required this.coverUrl,
     this.totalSize = 0,
     this.duration = 0,
     this.progress = 0.0,
-    required this.customName,
+    required this.title,
     this.isSelected = false,
     this.bitSpeedPerSecond = 0,
     this.finalSavePath='',
@@ -30,29 +74,47 @@ class ViewDownloadInfo {
     this.status = DownloadStatus.idle,
   });
 
-  Map<String, dynamic> toDbMap() {
+  DownloadTask toDownloadTask() {
+    return DownloadTask(
+      id: id,
+      url: downloadUrl,
+      title: title,
+      status: status,
+      tempDir: segementPath,
+      finalSavePath: finalSavePath,
+      fileType: fileType,
+    );
+  }
+
+
+
+  Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'platform': platform.toString(),
+      'liveId': id,
+      'coverUrl': coverUrl,
       'fileType': fileType.toString(),
       'downloadUrl': downloadUrl,
       'totalSize': totalSize,
       'duration': duration,
-      'customName': customName,
+      'customName': title,
       'segementPath': segementPath,
       'finalSavePath': finalSavePath,
       'status': status.toString(),
     };
   }
 
-  static ViewDownloadInfo fromDbMap(Map<String, dynamic> map) {
+  static ViewDownloadInfo fromJson(Map<String, dynamic> map) {
     return ViewDownloadInfo(
-      id: map['id'],
+      platform: VideoPlatform.values .firstWhere((e) => e.toString() == map['platform'],orElse: ()=>VideoPlatform.unknown),
+      id: map['liveId'],
+      coverUrl: map['coverUrl'],
       fileType: DownloadFileType.values
           .firstWhere((e) => e.toString() == map['fileType']),
       downloadUrl: map['downloadUrl'],
       totalSize: map['totalSize'],
       duration: map['duration'],
-      customName: map['customName'],
+      title: map['customName'],
       segementPath: map['segementPath'],
       finalSavePath: map['finalSavePath'],
       status: DownloadStatus.values

@@ -24,8 +24,8 @@ void main() async {
   });
 
   await AppConfig.initialize();
-  await LocalSetting.initialize();
   await logger.initialize();
+  await LocalSetting.initialize();
   logger.setLevel(LocalSetting.instance.logLevel);
   logger.i('App config loaded.');
   final downloadManager = DownloadManagerService();

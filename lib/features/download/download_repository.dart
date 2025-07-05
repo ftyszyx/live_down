@@ -18,10 +18,10 @@ class DownloadRepository {
   }
 
   Future<void> startDownload(ViewDownloadInfo task) {
-    return _downloadManager.startDownloadTask(task.id, task.downloadUrl, task.customName);
+    return _downloadManager.startDownloadTask(task);
   }
 
-  void stopDownload(int taskId) {
+  void stopDownload(String taskId) {
     _downloadManager.stopDownload(taskId);
   }
 

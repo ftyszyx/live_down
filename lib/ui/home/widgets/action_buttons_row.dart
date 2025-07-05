@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:live_down/core/configs/local_setting.dart';
 import 'package:live_down/core/services/logger_service.dart';
 import 'package:live_down/core/services/path_service.dart';
+import 'package:live_down/core/utils/common.dart';
 import 'package:live_down/ui/home/viewmodels/home_viewmodel.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 
 class ActionButtonsRow extends StatelessWidget {
@@ -41,14 +41,9 @@ class ActionButtonsRow extends StatelessWidget {
           ElevatedButton(
               onPressed: () async {
                 final localSetting = LocalSetting.instance;
-                final messenger = ScaffoldMessenger.of(context);
                 final String absolutePath = await PathService.getAbsoluteSavePath(localSetting.saveDir);
-                final Uri uri = Uri.file(absolutePath);
                 logger.i('Attempting to open directory: $absolutePath');
-                if (!await launchUrl(uri)) {
-                  messenger.showSnackBar( SnackBar(content: Text('无法打开目录: $absolutePath')));
-                  logger.e('launchUrl failed for $uri');
-                }
+                CommonUtils.openPath(absolutePath);
               },
               child: const Text('打开保存目录')),
           const SizedBox(width: 8),

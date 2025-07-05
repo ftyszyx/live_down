@@ -57,7 +57,7 @@ class _UrlInputRowState extends State<UrlInputRow> {
           ElevatedButton( style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[100]),
             onPressed: viewModel.isParsing
                 ? null
-                : () => viewModel.analyzeUrl(_urlController.text),
+                : () => viewModel.analyzeUrl(context, _urlController.text),
             child: viewModel.isParsing
                 ? const SizedBox(
                     height: 20,
