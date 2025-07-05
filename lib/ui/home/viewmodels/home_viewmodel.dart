@@ -1,13 +1,16 @@
 import 'dart:async';
 import 'dart:core';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:live_down/core/configs/local_setting.dart';
+import 'package:live_down/core/utils/common.dart';
 import 'package:live_down/features/download/models/download_task.dart';
 import 'package:live_down/features/download/download_repository.dart';
 import 'package:live_down/core/services/logger_service.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final DownloadRepository _repository;
+  final BuildContext context;
   StreamSubscription<DownloadProgressUpdate>? _progressSubscription;
 
   final List<ViewDownloadInfo> _tasks = [];
@@ -16,10 +19,17 @@ class HomeViewModel extends ChangeNotifier {
   bool _isParsing = false;
   bool get isParsing => _isParsing;
 
-
-  HomeViewModel({required DownloadRepository repository}) : _repository = repository {
+  HomeViewModel({required DownloadRepository repository, required this.context}) : _repository = repository {
     _progressSubscription = _repository.progressStream.listen(_onProgressUpdate);
     _loadTasks();
+  }
+
+  void showSnackBar(String message) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
   }
 
   void _loadTasks() {
@@ -39,8 +49,7 @@ class HomeViewModel extends ChangeNotifier {
         task.status = DownloadStatus.completed;
         task.totalSize = update.progressTotal;
         LocalSetting.instance.updateTask(task);
-      } else if (task.status != DownloadStatus.merging &&
-          task.status != DownloadStatus.paused) {
+      } else if (task.status != DownloadStatus.merging && task.status != DownloadStatus.paused) {
         task.status = DownloadStatus.downloading;
       }
       notifyListeners();
@@ -57,7 +66,7 @@ class HomeViewModel extends ChangeNotifier {
       final liveDetail = await _repository.parseUrl(url);
       final newTask = await liveDetail.toViewDownloadInfo();
       ViewDownloadInfo? oldTask = LocalSetting.instance.getTaskById(newTask.id);
-      if(oldTask == null) {
+      if (oldTask == null) {
         LocalSetting.instance.addTask(newTask);
       } else {
         newTask.title = oldTask.title;
@@ -81,12 +90,17 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> playTask(ViewDownloadInfo task) async {
+    final savepath = task.finalSavePath;
+    if (!File(savepath).existsSync()) {
+      showSnackBar('文件不存在');
+      return;
+    }
+    await CommonUtils.playMp4(savepath);
+  }
+
   void startSelectedDownloads() {
-    final selectedTasks = tasks.where((task) =>
-        task.isSelected &&
-        (task.status == DownloadStatus.idle ||
-            task.status == DownloadStatus.paused ||
-            task.status == DownloadStatus.failed));
+    final selectedTasks = tasks.where((task) => task.isSelected && (task.status == DownloadStatus.idle || task.status == DownloadStatus.paused || task.status == DownloadStatus.failed));
 
     for (final task in selectedTasks) {
       task.status = DownloadStatus.downloading;
@@ -100,8 +114,7 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   void stopSelectedDownloads() {
-    final selectedTasks = tasks.where((task) =>
-        task.isSelected && (task.status == DownloadStatus.downloading || task.status == DownloadStatus.merging));
+    final selectedTasks = tasks.where((task) => task.isSelected && (task.status == DownloadStatus.downloading || task.status == DownloadStatus.merging));
     for (final task in selectedTasks) {
       _repository.stopDownload(task.id);
       task.status = DownloadStatus.paused;
@@ -132,9 +145,7 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> mergeSelectedDownloads() async {
-    final selectedTasks = tasks
-        .where((task) => task.isSelected && task.status == DownloadStatus.paused)
-        .toList();
+    final selectedTasks = tasks.where((task) => task.isSelected && task.status == DownloadStatus.paused).toList();
 
     for (final task in selectedTasks) {
       task.status = DownloadStatus.merging;
@@ -151,12 +162,7 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   void clearCompletedDownloads() {
-    final completedTaskIds = tasks
-        .where((task) =>
-            task.status == DownloadStatus.completed ||
-            task.status == DownloadStatus.failed)
-        .map((task) => task.id)
-        .toList();
+    final completedTaskIds = tasks.where((task) => task.status == DownloadStatus.completed || task.status == DownloadStatus.failed).map((task) => task.id).toList();
 
     for (var id in completedTaskIds) {
       LocalSetting.instance.deleteTask(id);
@@ -179,4 +185,3 @@ class HomeViewModel extends ChangeNotifier {
     super.dispose();
   }
 }
- 

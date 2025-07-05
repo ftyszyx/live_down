@@ -137,6 +137,10 @@ class TaskList extends StatelessWidget {
                         tooltip: '删除',
                         onPressed: () => viewModel.deleteTask(task),
                         icon: const Icon(Icons.delete)),
+                    IconButton(
+                        tooltip: '播放',
+                        onPressed: () => viewModel.playTask(task),
+                        icon: const Icon(Icons.play_arrow)),
                   ],
                 )),
               ],

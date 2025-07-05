@@ -95,4 +95,19 @@ class CommonUtils {
       throw DownloadError('启动浏览器失败');
     }
   }
+
+  static Future<void> playMp4(String videoPath) async {
+    final exeDir = path.dirname(Platform.resolvedExecutable);
+    final ffplayPath = path.join(exeDir, 'data', 'flutter_assets', 'assets', 'ffmpeg', 'ffplay.exe');
+    if (!await File(ffplayPath).exists()) {
+      throw DownloadError('打包的 ffplay.exe 未找到，路径: $ffplayPath');
+    }
+    final result = await Process.run(ffplayPath, [videoPath]);
+    if (result.exitCode == 0) {
+      return;
+    }
+    throw DownloadError('播放失败');
+  }
+
 }
+

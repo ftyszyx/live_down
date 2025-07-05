@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<HomeViewModel>(
-          create: (_) => HomeViewModel(repository: downloadRepository),
+          create: (_) => HomeViewModel(repository: downloadRepository, context: context),
         ),
       ],
       child: MaterialApp(
