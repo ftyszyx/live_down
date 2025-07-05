@@ -2,7 +2,13 @@ import 'dart:io';
 
 enum DownloadStatus { idle, downloading, paused,  failed, merging ,completed}
 enum DownloadFileType { m3u8, mp4, unknown }
-enum VideoPlatform { kuaishou, taobao,unknown }
+enum VideoPlatform {
+  kuaishou('快手'),
+  taobao('淘宝'),
+  unknown('未知');
+  final String title;
+  const VideoPlatform(this.title);
+}
 
 /// 下载进度更新
 class DownloadProgressUpdate {

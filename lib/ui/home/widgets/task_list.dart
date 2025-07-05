@@ -97,7 +97,7 @@ class TaskList extends StatelessWidget {
                   onTap: () {
                     _copyToClipboard(context, task.id.toString());
                 }),
-                DataCell(Text(task.platform.name)),
+                DataCell(Text(task.platform.title)),
                 DataCell(Text(task.fileType.name.toUpperCase())),
                 DataCell(
                   Tooltip(
